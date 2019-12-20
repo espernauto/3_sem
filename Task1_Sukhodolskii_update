@@ -1,0 +1,72 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <string.h>
+#include <limits.h>
+
+int main() {
+
+int arg_max= sysconf(_SC_ARG_MAX);
+char *p;
+
+while(1){
+  int counter_del =0;
+  char delitel [] = " ,\n";
+  int counter_arg = 0;
+  char s [arg_max];
+  char *ps;
+  ps = s;
+  printf("Enter your command\n");
+
+while(counter_arg++<arg_max){
+  *ps=getchar();
+
+  if(*ps == '\n'){
+    *ps = '\0';
+    break;
+}
+
+  char *find = strchr(delitel, *ps);
+  if (find!=NULL){
+    counter_del++;
+}
+  ps++;
+
+
+}
+
+  if (strcmp(s, "exit") == 0){
+    return 0;
+}
+
+  char *arr[counter_del + 2];
+  int i = 0;
+  for (p = strtok(s, delitel); p != NULL; p = strtok(NULL, delitel)){
+    arr[i++] = p;
+}
+
+  arr[counter_del + 1] = '\0';
+
+  const pid_t pid = fork();
+
+  if (pid < 0) {
+    printf("fork() error\n");
+    return -1;
+}
+
+  if (pid) {
+    int status;
+    waitpid(pid, &status, 0);
+    printf("Ret code: %d\n", WEXITSTATUS(status));
+}
+
+  else
+    exit(execvp(arr[0], arr));
+
+}
+
+return 0;
+}
