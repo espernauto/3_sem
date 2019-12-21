@@ -1,0 +1,97 @@
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include <time.h>
+#include <math.h>
+
+
+const long int number = 100000000;
+double S = 0;
+
+double function(double x)
+{
+    return x*x*x*x*log(x);
+}
+
+struct rect
+{
+    double a;
+    double b;
+    double count;
+};
+
+void *calculate(void *annoy)
+{
+    struct rect *lim = (struct rect *)annoy;
+    int i;
+    long int hit_number = 0;
+    double x, y, dx, M=0;
+    dx = (double)(lim->b - lim->a)/lim->count;
+    for(i=0; i <= lim->count; i++)
+    {
+        if(function(lim->a+dx*i)>M)
+            M = function(lim->a+dx*i);
+    }
+
+    for(i=0; i < lim->count; i++)
+    {
+        x = lim->a + (double)(lim->b - lim->a)*rand()/RAND_MAX;
+        y = (double)M*rand()/RAND_MAX;
+
+        if(y<function(x))
+            hit_number++;
+    }
+
+    S += (lim->b - lim->a)*M*((double)hit_number/lim->count);
+    return NULL;
+}
+
+int main()
+{
+    int  n, i, result;
+    double lb, rb, length;
+
+    printf("Num_of_threads?\n");
+    scanf("%d", &n);
+    printf("Left border\n");
+    scanf("%lf", &lb);
+    printf("Right border\n");
+    scanf("%lf", &rb);
+
+    pthread_t *thread_id = (pthread_t *)malloc(n*sizeof(pthread_t ));
+    struct rect *rects = (struct rect *)malloc(n*sizeof(struct rect));
+
+    length = (double)(rb-lb)/n;
+
+    for(i = 0; i<n; i++)
+    {
+        rects[i].a = lb + length*i;
+        rects[i].b = rects[i].a + length;
+        rects[i].count = number / n;
+    }
+
+    clock_t start = clock();
+
+    for(i = 0; i<n; i++)
+    {
+        result = pthread_create( thread_id + i, (pthread_attr_t *)NULL, calculate, rects + i);
+        if(result != 0){
+            printf ("Error on thread create, return value = %d\n", result);
+            exit(-1);
+        }
+    }
+
+    for( i = 0; i<n; i++)
+    {
+        pthread_join(thread_id[i], (void **)NULL);
+    }
+
+    printf("Time: %.3f ms\n", 1000*((double)clock()-start)/((double)CLOCKS_PER_SEC));
+    printf("Square is %lf\n", S);
+
+    free(thread_id);
+    free(rects);
+
+    return 0;
+}
